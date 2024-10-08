@@ -1,28 +1,24 @@
 import fs from 'fs';
 import path from 'path';
-import Papa from 'papaparse';
 
 export default function handler(req, res) {
-  const { englishSentence, olchikiSentence } = req.body;
+  if (req.method === 'POST') {
+    const { englishSentence, olchikiSentence } = req.body;
 
-  const filePath = path.join(process.cwd(), 'data', 'sentences.csv');
-  const fileContent = fs.readFileSync(filePath, 'utf8');
+    // Format the line to save: "English Sentence","Olchiki Sentence"
+    const formattedTranslation = `"${englishSentence}","${olchikiSentence}"\n`;
 
-  const csvData = Papa.parse(fileContent, { header: true });
+    const filePath = path.join(process.cwd(), 'data', 'translations.csv'); // Path to save the translations
 
-  // Find the sentence and update the translation
-  const updatedData = csvData.data.map(row => {
-    if (row['english sentence'] === englishSentence) {
-      row['olchiki sentence'] = olchikiSentence;
-    }
-    return row;
-  });
-
-  // Convert updated data back to CSV format
-  const updatedCsv = Papa.unparse(updatedData, { header: true });
-
-  // Save the updated CSV file
-  fs.writeFileSync(filePath, updatedCsv);
-
-  res.status(200).json({ message: 'Translation saved successfully' });
+    // Append the formatted translation to the CSV file
+    fs.appendFile(filePath, formattedTranslation, (err) => {
+      if (err) {
+        console.error('Error writing to CSV file:', err);
+        return res.status(500).json({ message: 'Error saving translation' });
+      }
+      return res.status(200).json({ message: 'Translation saved successfully' });
+    });
+  } else {
+    res.status(405).json({ message: 'Method not allowed' });
+  }
 }
